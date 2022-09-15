@@ -1,0 +1,6 @@
+README.md
+setup.py
+graphproteins.egg-info/PKG-INFO
+graphproteins.egg-info/SOURCES.txt
+graphproteins.egg-info/dependency_links.txt
+graphproteins.egg-info/top_level.txt
