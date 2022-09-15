@@ -1,4 +1,6 @@
 import os
+import scipy as sp
+import dgl.backend as F
 from typing import Generator 
 import dgl
 import torch
@@ -29,19 +31,33 @@ class Protein_Dataset(DGLDataset):
     verbose : bool
         Whether to print out progress information
     """
-    def __init__(self,
-                 url=None,
-                 raw_dir=None,
-                 save_dir=None,
-                 force_reload=False,
-                 verbose=False):
 
-        super(Protein_Dataset, self).__init__(name='dataset_name',
-                                        url=url,
-                                        raw_dir=raw_dir,
-                                        save_dir=save_dir,
-                                        force_reload=force_reload,
-                                        verbose=verbose)
+
+    def __init__(self, name, url=None, raw_dir=None, save_dir=None,
+                 hash_key=(), force_reload=False, verbose=False, 
+                 transform=None, cutoff = 0.55):
+        self._name = name
+        self._url = url
+        self._force_reload = force_reload
+        self._verbose = verbose
+        self._hash_key = hash_key
+        self._hash = self._get_hash()
+        self._transform = transform
+        self.cutoff = cutoff
+        self._raw_dir = raw_dir
+        self._save_dir = save_dir
+
+        # if no dir is provided, the default dgl download dir is used.
+        # if raw_dir is None:
+        #     self._raw_dir = get_download_dir()
+        # else:
+        #     self._raw_dir = raw_dir
+        if save_dir is None:
+            self._save_dir = self._raw_dir
+        else:
+            self._save_dir = save_dir
+
+        self._load()
 
 
     def pull(self):
@@ -55,62 +71,83 @@ class Protein_Dataset(DGLDataset):
         # === data processing skipped ===
         
         file = self.url
-        #'../data/distance_matrix_trajectories_only_skip3.csv' # 6 classes
+        cutoff = self.cutoff
+        #'../data/distance_matrix_chi3.csv' # 6 classes
+        
         dist_matrix = np.genfromtxt(file, delimiter=',', skip_header=1)
         header = np.genfromtxt(file, delimiter=',', dtype=str, max_rows=1)
-        #mean = np.mean(dist_matrix)
+        mean = np.mean(dist_matrix)
         std = np.std(dist_matrix)
-        dist_matrix = (dist_matrix ) / std
-        dist_mask = np.where(dist_matrix > 0.55, 0, dist_matrix)
+        dist_matrix = (dist_matrix) / std
+        dist_mask = np.where(dist_matrix > cutoff, 0, dist_matrix)
         G = nx.from_numpy_array(dist_mask)
+        print(G)
+
         unique_prots = [i.split("_")[0] for i in header]
         unique_prots = list(set(unique_prots))
         one_hot_list = [unique_prots.index(i.split("_")[0]) for i in header]
         mapping =  { x:ind for  x, ind in enumerate(header) }
         mapping_one_hot =  { x:ind for  x, ind in enumerate(one_hot_list) }
-        print(G)
         G_relab = nx.relabel_nodes(G, mapping)
-
-
+        print(G_relab)
+        
         self.labels = list(mapping_one_hot.values())
-        self.graph_nx = G_relab
-        self.graph = dgl.from_networkx(G)
+        self.graph_nx = G
+        self.graph_nx_relab = G_relab
+        
+        # set graph degs
+        degree_dict = {}
+        between_dict = nx.betweenness_centrality(G)
+        harmonic_dict = nx.harmonic_centrality(G)
+        eigen_dict = nx.eigenvector_centrality(G)
 
+        for (node, val) in G.degree(): degree_dict[node] = val 
+        nx.set_node_attributes(G, degree_dict, 'degree')
+        nx.set_node_attributes(G, between_dict, 'between')
+        nx.set_node_attributes(G, harmonic_dict, 'harmonic')
+        nx.set_node_attributes(G, eigen_dict, 'eigen')
+
+        # set weights for edges
+        self.graph = dgl.DGLGraph()
+        self.graph = dgl.from_networkx(
+            G.to_directed(), 
+            node_attrs = ["degree", "between", 'harmonic', 'eigen'], 
+            edge_attrs=["weight"])
+
+        self.graph.ndata["feats"] = torch.vstack([
+            self.graph.ndata['degree'],
+            self.graph.ndata['between'],
+            self.graph.ndata['harmonic'],
+        ]).T
+        self.graph.edata["feats"] = torch.tensor(self.graph.edata['weight'])
         
         X_train, idx_test = train_test_split(list(range(len(self.labels))), test_size=0.2, random_state=1)
         idx_train, idx_val  = train_test_split(X_train, test_size=0.25, random_state=1) # 0.25 x 0.8 = 0.2
-        #print(len(self.labels))
+        
         train_mask = _sample_mask(idx_train, int(len(self.labels)))
         val_mask = _sample_mask(idx_val, int(len(self.labels)))
         test_mask = _sample_mask(idx_test, int(len(self.labels)))
     
-
+        self.idx_train = idx_train
+        self.idx_test = idx_test
+        self.idx_val = idx_val
+        
         # splitting masks
         self.graph.ndata['train_mask'] = generate_mask_tensor(np.array(train_mask))
         self.graph.ndata['val_mask'] = generate_mask_tensor(val_mask)
         self.graph.ndata['test_mask'] = generate_mask_tensor(test_mask)
+
         # node labels
         self.graph.ndata['label'] = torch.tensor(self.labels)
+        
         self._num_classes = int(len(unique_prots))
+        self.graph = dgl.reorder_graph(self.graph)
+        self._g = dgl.reorder_graph(self.graph)
 
         '''
-        # build graph
-        g = dgl.graph(graph)
-        # splitting masks
-        g.ndata['train_mask'] = train_mask
-        g.ndata['val_mask'] = val_mask
-        g.ndata['test_mask'] = test_mask
-        # node labels
-        g.ndata['label'] = torch.tensor(labels)
-        # node features
         #g.ndata['feat'] = torch.tensor(_preprocess_features(features),
         #                               dtype=F.data_type_dict['float32'])
-        self._num_labels = onehot_labels.shape[1]
-        self._labels = labels
-        # reorder graph to obtain better locality.
-        self._g = dgl.reorder_graph(g)
         '''
-
 
 
     def __getitem__(self, idx):
@@ -121,8 +158,10 @@ class Protein_Dataset(DGLDataset):
     def __len__(self):
         return 1
 
+
     def save(self):
         pass
+
 
     #def save(self):
     #    """save the graph list and the labels"""
@@ -148,8 +187,27 @@ class Protein_Dataset(DGLDataset):
         info_path = os.path.join(self.save_path, self.mode + '_info.pkl')
         return os.path.exists(graph_path) and os.path.exists(info_path)
 
+
+
 def _sample_mask(idx, l):
     """Create mask."""
     mask = np.zeros(l)
     mask[idx] = 1
     return mask
+
+def _normalize(mx):
+    """Row-normalize sparse matrix"""
+    rowsum = np.asarray(mx.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = sp.diags(r_inv)
+    mx = r_mat_inv.dot(mx)
+    return mx
+
+def _encode_onehot(labels):
+    classes = list(sorted(set(labels)))
+    classes_dict = {c: np.identity(len(classes))[i, :] for i, c in
+                    enumerate(classes)}
+    labels_onehot = np.asarray(list(map(classes_dict.get, labels)),
+                               dtype=np.int32)
+    return labels_onehot
