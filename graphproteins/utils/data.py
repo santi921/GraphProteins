@@ -113,13 +113,15 @@ class Protein_Dataset(DGLDataset):
             G.to_directed(), 
             node_attrs = ["degree", "between", 'harmonic', 'eigen'], 
             edge_attrs=["weight"])
-
+        
         self.graph.ndata["feats"] = torch.vstack([
             self.graph.ndata['degree'],
             self.graph.ndata['between'],
             self.graph.ndata['harmonic'],
         ]).T
-        self.graph.edata["feats"] = torch.tensor(self.graph.edata['weight'])
+        
+        self.graph.edata["feats"] = torch.tensor([1/i for i in self.graph.edata['weight']])
+        
         
         X_train, idx_test = train_test_split(list(range(len(self.labels))), test_size=0.2, random_state=1)
         idx_train, idx_val  = train_test_split(X_train, test_size=0.25, random_state=1) # 0.25 x 0.8 = 0.2
@@ -142,7 +144,8 @@ class Protein_Dataset(DGLDataset):
         
         self._num_classes = int(len(unique_prots))
         self.graph = dgl.reorder_graph(self.graph)
-        self._g = dgl.reorder_graph(self.graph)
+        self.graph = dgl.add_self_loop(self.graph)
+        self._g = self.graph
 
         '''
         #g.ndata['feat'] = torch.tensor(_preprocess_features(features),

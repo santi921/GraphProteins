@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from dgl.data.utils import generate_mask_tensor
 from graphproteins.utils.data import Protein_Dataset
 from graphproteins.utils.models import *
+from dgl.nn import EdgeWeightNorm, GraphConv
 
 
 dataset = Protein_Dataset(
@@ -15,7 +16,7 @@ dataset = Protein_Dataset(
     save_dir="../../data/",
     force_reload=True,
     verbose=True,
-    cutoff = 1.1
+    cutoff = 1.2
 )
 
 
@@ -26,13 +27,23 @@ def train(g, model):
 
     features = g.ndata['feats']
     labels = g.ndata['label']
+    edge_weight = g.edata['feats']
+    norm = EdgeWeightNorm(norm='right', eps=0.001)
+    print(edge_weight.shape)
+    print(edge_weight)
+    norm_edge_weight = norm(g, edge_weight)
+
+    #conv = GraphConv(10, 2, norm='none', weight=True, bias=True)
+    #res = conv(g, feat, edge_weight=norm_edge_weight)
+    
     train_mask = g.ndata['train_mask']
     val_mask = g.ndata['val_mask']
     test_mask = g.ndata['test_mask']
+    
 
     for e in range(5000):
         # Forward
-        logits = model(g, features)
+        logits = model(g, features, norm_edge_weight)
 
         # Compute prediction
         pred = logits.argmax(1)
@@ -72,7 +83,7 @@ n_labels = int(node_labels.max().item() + 1)
 # Create the model with given dimensions
 #dataset.graph.ndata['degree'].shape[1]
 model = GCN(n_features, 16, n_labels)
-model = SAGE(in_feats=n_features, hid_feats=100, out_feats=n_labels)
+#model = SAGE(in_feats=n_features, hid_feats=100, out_feats=n_labels)
 
 graph = dataset.graph.to('cuda')
 train(graph, model.to('cuda'))
