@@ -37,7 +37,6 @@ pos = nx.spring_layout(G_relab)
 
 louvain_coms = algorithms.louvain(G, weight='weight', resolution=1.2)
 partition = community_louvain.best_partition(G_relab)
-
 print("Mod Score: " + str(community_louvain.modularity(partition, G_relab)))
 print("Mod Score: " + str(louvain_coms.newman_girvan_modularity()))
 
@@ -123,6 +122,6 @@ layout = go.Layout(title="Network, Cutoff = " + str(CUTOFF),
 data = [trace_edges, trace_nodes]
 fig = go.Figure(data=data, layout=layout)
 
-#fig.show()
+fig.show()
 import plotly.io as pio
 pio.write_html(fig, auto_open=True, file = str(CUTOFF)+"_traj.html")
