@@ -99,7 +99,7 @@ class Protein_Dataset(DGLDataset):
         degree_dict = {}
         between_dict = nx.betweenness_centrality(G)
         harmonic_dict = nx.harmonic_centrality(G)
-        eigen_dict = nx.eigenvector_centrality(G)
+        eigen_dict = nx.eigenvector_centrality(G, max_iter=1000)
 
         for (node, val) in G.degree(): degree_dict[node] = val 
         nx.set_node_attributes(G, degree_dict, 'degree')
