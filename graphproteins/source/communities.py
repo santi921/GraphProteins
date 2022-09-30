@@ -3,11 +3,12 @@ import numpy as np
 from calendar import c
 
 import community as community_louvain
+from cdlib import algorithms
 
 from graphproteins.utils.data import Protein_Dataset
 from graphproteins.utils.models import *
 from graphproteins.utils.communities import *
-
+from graphproteins.utils.plot import plot_graph_w_communities
 
 
 def communities(target_file = "distance_matrix_with_originals.csv", cutoff=1.2): 
