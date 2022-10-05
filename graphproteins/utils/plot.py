@@ -6,13 +6,15 @@ import plotly.io as pio
 
 def plot_graph_w_communities(dataset, names, community_label, cutoff, save = False): 
     x_edges, y_edges, z_edges=[], [], []
+    #nx_graph = dataset.graph_nx_relab
+    nx_graph = dataset.graph_nx
 
-    spring_3D = nx.spring_layout(dataset.graph_nx_relab, dim=3, seed = 1)
+    spring_3D = nx.spring_layout(nx_graph, dim=3, seed = 1)
 
-    x_nodes = [spring_3D[i][0] for i in dataset.graph_nx_relab] # x-coordinates of nodes
-    y_nodes = [spring_3D[i][1] for i in dataset.graph_nx_relab] # y-coordinates
-    z_nodes = [spring_3D[i][2] for i in dataset.graph_nx_relab] # z-coordinates
-    edge_list = dataset.graph_nx_relab.edges()
+    x_nodes = [spring_3D[i][0] for i in nx_graph] # x-coordinates of nodes
+    y_nodes = [spring_3D[i][1] for i in nx_graph] # y-coordinates
+    z_nodes = [spring_3D[i][2] for i in nx_graph] # z-coordinates
+    edge_list = nx_graph.edges()
 
     #need to fill these with all of the coordiates
     for edge in edge_list:
@@ -44,7 +46,7 @@ def plot_graph_w_communities(dataset, names, community_label, cutoff, save = Fal
                                         size=6,
                                         color=community_label, #color the nodes according to their community
                                         colorscale='spectral',
-                        line=dict(color='black', width=0.2)),
+                            line=dict(color='black', width=0.2)),
                             text=names)
 
     #we need to set the axis for the plot 
