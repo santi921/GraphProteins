@@ -43,10 +43,11 @@ def plot_graph_w_communities(dataset, names, community_label, cutoff, save = Fal
                             z=z_nodes,
                             mode='markers',
                             marker=dict(symbol='circle',
-                                        size=6,
+                                        size=3.5,
                                         color=community_label, #color the nodes according to their community
                                         colorscale='spectral',
                             line=dict(color='black', width=0.2)),
+                            showlegend=True,
                             text=names)
 
     #we need to set the axis for the plot 
@@ -61,18 +62,26 @@ def plot_graph_w_communities(dataset, names, community_label, cutoff, save = Fal
     layout = go.Layout(title="Network, Cutoff = " + str(cutoff),
                     width=1000,
                     height=1000,
-                    showlegend=False,
+                    showlegend=True,
                     scene=dict(xaxis=dict(axis),
                             yaxis=dict(axis),
                             zaxis=dict(axis),
                             ),
-                    margin=dict(t=100),
+                    margin=dict(t=50),
                     hovermode='closest')
 
     #Include the traces we want to plot and create a figure
     data = [trace_edges, trace_nodes]
     fig = go.Figure(data=data, layout=layout)
+
+    camera = dict(
+        up=dict(x=1, y=1, z=1),
+        center=dict(x=0, y=0, z=0),
+        eye=dict(x=-2.5, y=3, z=-1)
+    )
+    fig.update_layout(scene_camera=camera)
     fig.show()
     
     if(save):
-        pio.write_html(fig, auto_open=True, file = "../../data/"+str(cutoff)+"_traj.html")
+        pio.write_image(fig, 'filename.pdf', scale=6, width=800, height=800)
+        pio.write_html(fig, auto_open=False, file = "../../data/"+str(cutoff)+"_traj.html")

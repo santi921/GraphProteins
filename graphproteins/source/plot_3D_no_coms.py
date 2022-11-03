@@ -17,6 +17,7 @@ file = 'distance_matrix_trajectories_only_skip3.csv'
 file = 'distance_matrix.csv'
 file = 'distance_matrix_chi3.csv'
 file = 'distance_matrix_with_originals.csv'
+file = '.distance_matrix_0930.csv'
 
 dist_matrix = np.genfromtxt(file, delimiter=',', skip_header=1)
 header = np.genfromtxt(file, delimiter=',', dtype=str, max_rows=1)

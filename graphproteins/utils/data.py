@@ -191,7 +191,8 @@ class Protein_Dataset_Single(DGLDataset):
 
     def __init__(self, name, labels = [], url=None, raw_dir=None, save_dir=None,
                  hash_key=(), force_reload=False, verbose=False, 
-                 transform=None, cutoff = 0.55, header = False, activity_classes=1):
+                 transform=None, cutoff = 0.55, header = False, activity_classes=1,
+                 c = 0.5):
         self._name = name
         self._url = url
         self._force_reload = force_reload
@@ -205,6 +206,7 @@ class Protein_Dataset_Single(DGLDataset):
         self.header = header
         self.activity_classes=1
         self.labels = labels
+        self.c = c
 
         if save_dir is None:
             self._save_dir = self._raw_dir
@@ -227,35 +229,39 @@ class Protein_Dataset_Single(DGLDataset):
         file = self.url
         cutoff = self.cutoff
         
-        # one hot encode labels
-        if(len(self.labels)!=0):      
-            labels_temp = self.labels 
-            label_set = list(set(labels_temp))
-            labels = [label_set.index(i) for i in labels_temp]
-            self.labels = labels
-            self.activity_classes = len(label_set)
-
         dist_matrix = np.genfromtxt(file, delimiter=',', skip_header=1)
         std = np.std(dist_matrix)
         dist_matrix = (dist_matrix) / std
         dist_mask = np.where(dist_matrix > cutoff, 0, dist_matrix)
+        #dist_mask = np.where(dist_matrix < cutoff, 1, dist_matrix)
         G = nx.from_numpy_array(dist_mask)
-        self.graph_nx = G
 
+        for _, _, weight in G.edges(data=True):
+            weight["weight"] = np.exp(- self.c * weight["weight"])
+                        
+        self.graph_nx = deepcopy(G)
 
         if (self.header):
             header = np.genfromtxt(file, delimiter=',', dtype=str, max_rows=1)
-            print(header)
             unique_prots = [i.split("_")[0] for i in header]
-            unique_prots = list(set(unique_prots))        
+            unique_prots = list(set(unique_prots))
+            unique_prots.sort()        
             mapping =  { x:ind for  x, ind in enumerate(unique_prots) }
             G = nx.relabel_nodes(G, mapping)
-            self.graph_nx = G
+            self.graph_nx = deepcopy(G)
 
-        if(len(self.labels)!=0):      
+        if(len(self.labels)!=0):  
+            labels_temp = self.labels 
+            label_set = list(set(labels_temp))
+            label_set.sort()
+            labels = [label_set.index(i) for i in labels_temp]
             mapping =  { x:ind for  x, ind in enumerate(labels) }
-            G = nx.relabel_nodes(G, mapping)
-            self.graph_nx_activity_label = G
+            G_activity = nx.relabel_nodes(G, mapping)
+            self.labels = labels
+            self.activity_classes = len(label_set)    
+            self.graph_nx_activity_label = G_activity
+
+        else: print("no labels provided")
 
         # set graph degs
         degree_dict = {}
@@ -282,7 +288,7 @@ class Protein_Dataset_Single(DGLDataset):
             self.graph.ndata['harmonic'],
         ]).T
         
-        self.graph.edata["feats"] = torch.tensor([1/i for i in self.graph.edata['weight']])
+        #self.graph.edata["feats"] = torch.tensor([np.exp(-c*i) for i in self.graph.edata['weight']])
         
         if(self.header):
             X_train, idx_test = train_test_split(list(range(len(self.labels))), test_size=0.2, random_state=1)

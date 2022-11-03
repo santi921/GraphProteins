@@ -11,6 +11,11 @@ def community_breakdown(coms_processed):
     sum_list = 0 
     for i in count_list: sum_list+=i 
     print("----------------------------------")
-
+    print(sum_list)
     for ind, i in enumerate(unique_list):
-        print(i + "\t\t" + str(count_list[ind]/sum_list))
+        
+        if i == '0': name = "Y"
+        elif i == '1': name = "H"
+        else: name = "C"
+
+        print(name + "\t\t" + str(count_list[ind]/sum_list))
