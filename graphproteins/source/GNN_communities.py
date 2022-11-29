@@ -11,7 +11,7 @@ from dgl.nn import EdgeWeightNorm, GraphConv
 
 dataset = Protein_Dataset(
     name = 'prot datast',
-    url="../../data/distance_matrix_trajectories_only_skip3.csv",
+    url="../../data/distance_mats/distance_matrix_trajectories_only_skip3.csv",
     raw_dir="../../data/",
     save_dir="../../data/",
     force_reload=True,

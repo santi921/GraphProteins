@@ -65,8 +65,8 @@ def process_frames(frames, dict_compressed, dict_pdb_xyz, id_prot, cutoff = 1.2)
     dict_pdb_xyz[id_prot] = dict_pdb_xyz_compress_temp
 
 def main():
+
     folder = "/ocean/projects/che160019p/santi92/heme_traj/"
-    
     manager = Manager()
 
 

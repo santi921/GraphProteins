@@ -3,25 +3,29 @@ from cdlib.algorithms.attribute_clustering import ilouvain
 
 import pandas as pd 
 from cdlib import algorithms
-
+import numpy as np
 from graphproteins.utils.data import Protein_Dataset_Single
 from graphproteins.utils.models import *
 from graphproteins.utils.communities import *
 from graphproteins.utils.plot import plot_graph_w_communities
 
 
-def communities(target_file = "distance_matrix_0930.csv", cutoff=0.2, c = 1): 
+def communities(target_file = "../../data/distance_matrix.csv", label_file = "../../data/protein_data.csv", cutoff=0.2, c = 1): 
     
-    activity = pd.read_csv("../../data/protein_data.csv")
+    activity = pd.read_csv(label_file)
+    header = np.genfromtxt(target_file, delimiter=',', dtype=str, max_rows=1)
+    
+    activity = activity[activity["name"].isin(header)]
     names = activity["name"]
     selectivity = activity["label"].tolist()
-    
+    print(activity)
+
     dataset = Protein_Dataset_Single(
         name = 'prot datast',
         labels=selectivity,
-        url="../../data/" + target_file,
-        raw_dir="../../data/",
-        save_dir="../../data/",
+        url= target_file,
+        raw_dir="../../data/distance_mats/",
+        save_dir="../../data/distance_mats/",
         force_reload=True,
         verbose=True,
         cutoff = cutoff,
@@ -33,7 +37,7 @@ def communities(target_file = "distance_matrix_0930.csv", cutoff=0.2, c = 1):
     labels_as_dict = {}
     for ind, node in enumerate(dataset.graph_nx.nodes()):
         labels_as_dict[node]={"l1":dataset.labels[ind]}
-    
+ 
     leiden_coms = algorithms.leiden(dataset.graph_nx)
     print("Mod Score: " + str(leiden_coms.newman_girvan_modularity().score))
 
@@ -48,7 +52,7 @@ def communities(target_file = "distance_matrix_0930.csv", cutoff=0.2, c = 1):
     names_w_com_label = []
     for k,v in dict(community_algo.to_node_community_map()).items():
         names_w_com_label.append(str(k)+"_"+str(v[0]))
-
+    
     # label with activity type 
     activity_label = []
     for i in names:     
@@ -88,7 +92,8 @@ def communities(target_file = "distance_matrix_0930.csv", cutoff=0.2, c = 1):
     for k, v in activity_com_dict.items():
         community_breakdown(v)
     
-communities(target_file = "distance_matrix_0930_filtered.csv", 
-            cutoff = 0.19, 
-            c = 0.1)
+communities(target_file = "../../data/distance_mats/distance_matrix.csv", 
+            label_file = "../../data/distance_mats/protein_data.csv",
+            cutoff = 2, 
+            c = 3)
 

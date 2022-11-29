@@ -6,8 +6,8 @@ from cdlib import algorithms, evaluation
 
 import os
 def main():
-    folder = "../../data/communities/"
-    dist_mat = "../../data/communities/md_cys.csv"
+    folder = "../../data/md_traj/"
+    dist_mat = "../../data/md_traj/md_cys.csv"
     cutoff = 0.0
     #dist_matrix = np.genfromtxt(dist_mat, delimiter=',', skip_header=1)
     dist_matrix = pd.read_csv(dist_mat, index_col=0)

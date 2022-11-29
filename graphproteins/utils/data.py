@@ -234,6 +234,7 @@ class Protein_Dataset_Single(DGLDataset):
         dist_matrix = (dist_matrix) / std
         dist_mask = np.where(dist_matrix > cutoff, 0, dist_matrix)
         #dist_mask = np.where(dist_matrix < cutoff, 1, dist_matrix)
+        print(dist_mask.shape)
         G = nx.from_numpy_array(dist_mask)
 
         for _, _, weight in G.edges(data=True):
@@ -245,7 +246,7 @@ class Protein_Dataset_Single(DGLDataset):
             header = np.genfromtxt(file, delimiter=',', dtype=str, max_rows=1)
             unique_prots = [i.split("_")[0] for i in header]
             unique_prots = list(set(unique_prots))
-            unique_prots.sort()        
+            unique_prots.sort()       
             mapping =  { x:ind for  x, ind in enumerate(unique_prots) }
             G = nx.relabel_nodes(G, mapping)
             self.graph_nx = deepcopy(G)
@@ -276,6 +277,7 @@ class Protein_Dataset_Single(DGLDataset):
         nx.set_node_attributes(G, eigen_dict, 'eigen')
 
         # set weights for edges
+        '''
         self.graph = dgl.DGLGraph()
         self.graph = dgl.from_networkx(
             G.to_directed(), 
@@ -314,7 +316,7 @@ class Protein_Dataset_Single(DGLDataset):
             self.graph = dgl.reorder_graph(self.graph)
             self.graph = dgl.add_self_loop(self.graph)
             self._g = self.graph
-
+        '''
 
 
     def __getitem__(self, idx):

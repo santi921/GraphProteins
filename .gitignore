@@ -1,7 +1,10 @@
 *top
 *json
 *html
+*pdf*
 *gz
 *csv
-
 *pyc
+
+data.*
+*__pychache__*
