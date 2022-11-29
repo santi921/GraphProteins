@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 from dgl.data.utils import generate_mask_tensor
-from graphproteins.utils.data import Protein_Dataset
+from graphproteins.utils.dataset import Protein_Dataset
 from graphproteins.utils.models import *
 from dgl.nn import EdgeWeightNorm, GraphConv
 

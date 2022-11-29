@@ -125,4 +125,4 @@ fig = go.Figure(data=data, layout=layout)
 
 fig.show()
 import plotly.io as pio
-pio.write_html(fig, auto_open=True, file = str(CUTOFF)+"_traj.html")
+pio.write_html(fig, auto_open=True, file = "../reporting/" + str(CUTOFF)+"_traj.html")

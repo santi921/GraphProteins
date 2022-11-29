@@ -14,8 +14,6 @@ file = 'distance_matrix_trajectories_only_skip3.csv'
 file = 'distance_matrix.csv'
 #sfile = 'distance_matrix_with_originals.csv'
 
-
-
 dist_matrix = np.genfromtxt(file, delimiter=',', skip_headser=1)
 header = np.genfromtxt(file, delimiter=',', dtype=str, max_rows=1)
 mean = np.mean(dist_matrix)
@@ -122,4 +120,4 @@ fig = go.Figure(data=data, layout=layout)
 
 #fig.show()
 import plotly.io as pio
-pio.write_html(fig, auto_open=True, file = str(CUTOFF) +".html")
+pio.write_html(fig, auto_open=True, file = "../reporting/html/"+ str(CUTOFF) +".html")
