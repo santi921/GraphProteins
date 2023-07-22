@@ -65,11 +65,16 @@ def parse_compressed_directory(root = "../../md_traj/", distance_file = "md_cys.
     G = nx.from_numpy_array(dist_mask)
     
     names_stripped = [i.split("/")[-1] for i in list(names)]
-    
     index_stripped = [i.split("_")[index_ind] for i in names_stripped]
     protein_names = [i.split("_")[protein_ind] for i in names_stripped]
+    for i in range(len(protein_names)):
+        
+        if protein_names[i][-4:] == ".top":
+            protein_names[i] = protein_names[i][:-4]
     protein_names_and_count = []
 
+    
+    
     for ind, i in enumerate(protein_names):
         with open(root + i + "_compressed.json", "r") as f:
             compressed_dict = json.load(f)

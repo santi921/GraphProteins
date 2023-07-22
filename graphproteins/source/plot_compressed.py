@@ -8,25 +8,41 @@ import plotly.io as pio
 from glob import glob
 from graphproteins.utils.data import parse_compressed_directory
 
+dict_actions = {
+    "1apx": "H", 
+    "1dgh": "Y",
+    "1ebe": "H", 
+    "1gwf": "Y",
+    "1hch": "H", 
+    "1u5u": "Y",
+    "3abb": "C", 
+    "3hb6": "Y", 
+    "4g3j": "C" 
+}
+
+
+
 
 def main(): 
 
-    color_map_log, color_map = [], []
+    label_color, size_map = [], []
     x_edges, y_edges, z_edges=[], [], []
 
-    # 
-    cutoff = 2.6
+    """
+    cutoff = 4.0
     root = "../../data/md_traj_hemes/"
     distance_file = "distance_matrix.csv"
     index_ind = 0
     protein_ind = 1
-    
+    cystine = False
+    """
     # cystine
-    #cutoff = 7.5 
-    #root = "../../data/md_traj/"
-    #distance_file = "md_cys.csv"
-    # index_ind = 1
-    # protein_ind = 3
+    cutoff = 6.5
+    root = "../../data/md_traj/"
+    distance_file = "md_cys.csv"
+    index_ind = 1
+    protein_ind = 3
+    cystine = True
 
     G, names, counts, protein_names_and_count  = parse_compressed_directory(
         root = root, 
@@ -35,13 +51,41 @@ def main():
         protein_ind=protein_ind,
         index_ind=index_ind)
 
+    # color list accordin to protein name
+    """
+
+    """
+    names = []
+    if cystine:
+        for i in range(len(protein_names_and_count)):
+            protein_name = protein_names_and_count[i].split("_")[0]
+            names.append(protein_name)
+            #color = dict_prot_name[protein_name]
+        names_set = list(set(names))
+        # randomly assign random colors to each protein from list of colors
+        for i in range(len(protein_names_and_count)):
+            protein_name = protein_names_and_count[i].split("_")[0]
+            color = names_set.index(protein_name)
+            label_color.append(color)
+
+    else: 
+        for i in range(len(protein_names_and_count)):
+            protein_name = protein_names_and_count[i].split("_")[0]
+            activity = dict_actions[protein_name]
+            if activity == "H":
+                label_color.append("red")
+            elif activity == "Y":
+                label_color.append("green")
+            elif activity == "C":
+                label_color.append("blue")
+            else:
+                label_color.append("black")
+
     max_color_value, min_color_value = max(np.array(counts)), min(np.array(counts))
-    
     for i in counts:
-        #color_map.append(np.log(i) * 100)
-        color_map_log.append(25*i/max_color_value)
-        color_map.append((i)/(max_color_value-min_color_value))
-    
+        size_map.append(20 * (i)/(max_color_value-min_color_value))
+    if label_color == []:
+        label_color = size_map
     spring_3D = nx.spring_layout(G,dim=3, seed = 1)
     
     x_nodes = [spring_3D[i][0] for i in G] # x-coordinates of nodes
@@ -62,7 +106,8 @@ def main():
         z_edges += z_coords
 
     #create a trace for the edges
-    trace_edges = go.Scatter3d(x=x_edges,
+    trace_edges = go.Scatter3d(
+                            x=x_edges,
                             y=y_edges,
                             z=z_edges,
                             mode='lines',
@@ -82,14 +127,27 @@ def main():
                         line=dict(color='black', width=0.2)),
                             text=names)
     '''
-    trace_nodes = go.Scatter3d(x=x_nodes,
+    if cystine:
+        
+
+        trace_nodes = go.Scatter3d(x=x_nodes,
                             y=y_nodes,
                             z=z_nodes,
                             mode='markers',
                             marker=dict(symbol='circle',
-                                        size=color_map_log,
+                                        size=size_map,
+                                        color = label_color,
+                        line=dict(color='black', width=0.2)),
+                            text=protein_names_and_count)
+    else: 
+        trace_nodes = go.Scatter3d(x=x_nodes,
+                            y=y_nodes,
+                            z=z_nodes,
+                            mode='markers',
+                            marker=dict(symbol='circle',
+                                        size=size_map,
                                         colorscale="YlOrRd",
-                                        color = color_map_log,
+                                        color = label_color,
                         line=dict(color='black', width=0.2)),
                             text=protein_names_and_count)
 
@@ -117,7 +175,11 @@ def main():
     #Include the traces we want to plot and create a figure
     data = [trace_edges, trace_nodes]
     fig = go.Figure(data=data, layout=layout)
-    pio.write_html(fig, auto_open=False, file = "../../reporting/html/" + str(cutoff)+"_compressed_traj.html")
+    if cystine:
+            pio.write_html(fig, auto_open=False, file = "../../reporting/html/" + str(cutoff)+"_compressed_traj_cyst.html")
+    else: 
+        pio.write_html(fig, auto_open=False, file = "../../reporting/html/" + str(cutoff)+"_compressed_traj.html")
+    
     fig.show()
     
 main()
